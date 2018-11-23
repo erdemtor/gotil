@@ -2,10 +2,9 @@ package set_test
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"gotil/set"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestOfStrings(t *testing.T) {

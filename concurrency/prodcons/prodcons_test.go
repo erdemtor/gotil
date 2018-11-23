@@ -1,13 +1,11 @@
 package prodcons_test
 
-
 import (
-"errors"
-"github.com/stretchr/testify/assert"
+	"errors"
+	"github.com/stretchr/testify/assert"
 	"gotil/concurrency/prodcons"
 	"gotil/set"
 	"gotil/strings"
-
 	"testing"
 )
 
@@ -20,7 +18,7 @@ func TestManyProducersOneConsumer(t *testing.T) {
 		produced := set.OfStrings()
 		runner := prodcons.Runner{}
 		for i := 0; i < producerCount; i++ {
-			producedStr := strings.RandomStringOfLength(5)
+			producedStr := strings.RandOfSize(5)
 			produced.Put(producedStr)
 			runner.Producer(func() (interface{}, error) { return producedStr, nil })
 

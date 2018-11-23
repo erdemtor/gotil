@@ -35,7 +35,9 @@ func TestFindFirst(t *testing.T) {
 	finder := func(a string) bool {
 		return len(a) == 2
 	}
-	assert.Equal("as", FindFirst([]string{"asd", "as", "da", "asdasd"}, finder))
+	found, index := FindFirst([]string{"asd", "as", "da", "asdasd"}, finder)
+	assert.Equal("as", found)
+	assert.Equal(1, index)
 	assert.Empty(FindFirst(nil, finder))
 	assert.Empty(FindFirst([]string{}, finder))
 }
@@ -50,17 +52,8 @@ func TestGetKeys(t *testing.T) {
 	assert.True(reflect.DeepEqual(keys, []string{"a", "b", "c"}))
 }
 
-func TestToJSONStringIgnoreError(t *testing.T) {
-	data := map[string]int{"key": 1, "key2": 2}
-	stringified := ToJSONStringIgnoreError(data)
-	assert.NotEmpty(t, stringified)
-	assert.Contains(t, stringified, "key2")
-	stringified = ToJSONStringIgnoreError(func() {}) // functions are not marshall-able
-	assert.Empty(t, stringified)
-}
-
 func TestRandomStringOfLength(t *testing.T) {
 	lenght := 5
-	randStr := RandomStringOfLength(lenght)
+	randStr := RandOfSize(lenght)
 	assert.Len(t, randStr, lenght)
 }
