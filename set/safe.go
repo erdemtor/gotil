@@ -18,7 +18,7 @@ func (t *threadSafe) Contains(element interface{}) bool {
 	return t.unsafe.Contains(element)
 
 }
-func (t *threadSafe) Pop(input string) bool {
+func (t *threadSafe) Pop(input interface{}) bool {
 	t.Lock()
 	defer t.Unlock()
 	return t.unsafe.Pop(input)

@@ -17,7 +17,7 @@ func (t *threadUnsafe) Contains(element interface{}) bool {
 }
 
 //Pop removes the given string and returns true, if the string doesn't exist returns false
-func (t *threadUnsafe) Pop(input string) bool {
+func (t *threadUnsafe) Pop(input interface{}) bool {
 	_, exists := t.m[input]
 	if exists {
 		delete(t.m, input)

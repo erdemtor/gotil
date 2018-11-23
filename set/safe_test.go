@@ -56,3 +56,35 @@ func TestThreadSafe_Equals(t *testing.T) {
 	}()
 	wg.Wait()
 }
+
+func TestThreadSafe_Pop(t *testing.T) {
+	t.Parallel()
+	wg := sync.WaitGroup{}
+	s := set.ThreadSafe()
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(i int) {
+			s.Put(i)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	wg = sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+			assert.True(t, s.Pop(i))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	assert.Equal(t, 10, s.Size())
+	keys := s.Keys()
+	assert.Len(t, keys, 10)
+
+	for i := 0; i < 10; i++ {
+		val := keys[i].(int)
+		assert.True(t, val > 9)
+
+	}
+}

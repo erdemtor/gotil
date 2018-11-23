@@ -84,7 +84,7 @@ func TestManyProducersManyConsumers(t *testing.T) {
 	r := prodcons.Runner{}
 	m := map[int]struct{}{}
 
-	producerCount := 50000
+	producerCount := 500
 	for i := 0; i < producerCount; i++ {
 		iC := i
 		m[iC] = struct{}{}

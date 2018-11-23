@@ -3,7 +3,7 @@ package set
 type Set interface {
 	Put(elements ...interface{})
 	Contains(element interface{}) bool
-	Pop(input string) bool
+	Pop(input interface{}) bool
 	Size() int
 	Keys() []interface{}
 }

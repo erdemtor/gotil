@@ -1,7 +1,6 @@
 package strings
 
 import (
-	"encoding/json"
 	"math/rand"
 	"time"
 )
@@ -20,16 +19,16 @@ func ArrayContains(arr []string, s string) bool {
 }
 
 //FindFirst returns the first value in the array that satisfies the given function
-func FindFirst(arr []string, finder func(string) bool) string {
+func FindFirst(arr []string, finder func(string) bool) (found string, index int) {
 	if arr == nil {
-		return ""
+		return "", -1
 	}
-	for _, a := range arr {
+	for i, a := range arr {
 		if finder(a) {
-			return a
+			return a, i
 		}
 	}
-	return ""
+	return "", -1
 }
 
 //ArraysIntersect returns intersection of two arrays
@@ -52,8 +51,7 @@ func GetKeys(m map[string]string) []string {
 	return retArray
 }
 
-//RandomStringOfLength generates a random string
-func RandomStringOfLength(n int) string {
+func RandOfSize(n int) string {
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)
@@ -63,11 +61,3 @@ func RandomStringOfLength(n int) string {
 	return string(b)
 }
 
-//ToJSONStringIgnoreError takes a struct and prints it as json, if err occurs it returns the zero-string
-func ToJSONStringIgnoreError(data interface{}) string {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		return ""
-	}
-	return string(bytes)
-}
