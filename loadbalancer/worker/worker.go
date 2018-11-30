@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gotil/loadbalancer/message"
 	"gotil/loadbalancer/messenger"
+	"io/ioutil"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,11 +25,13 @@ type Worker struct {
 
 func Start(f func(interface{}), incoming, outgoing chan message.Message, count int) {
 	for i := 0; i < count; i++ {
-		go (&Worker{
+		w := &Worker{
 			sender:   messenger.NewSender(generateID(), outgoing),
 			incoming: incoming,
 			f:        f,
-		}).start()
+		}
+		w.sender.SetLogger(ioutil.Discard)
+		go w.start()
 	}
 
 }

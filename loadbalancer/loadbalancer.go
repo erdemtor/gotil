@@ -5,6 +5,7 @@ import (
 	"gotil/loadbalancer/message"
 	"gotil/loadbalancer/messenger"
 	"gotil/loadbalancer/worker"
+	"io/ioutil"
 	"log"
 	"math"
 	"runtime"
@@ -71,6 +72,7 @@ func New(f func(interface{})) Executor {
 		outgoing: outgoing,
 		sender:   messenger.NewSender(id, outgoing),
 	}
+	m.sender.SetLogger(ioutil.Discard)
 	go func() {
 		for range time.Tick(time.Millisecond * 10) {
 			if m.wiq == 0 {
