@@ -3,9 +3,7 @@ package loadbalancer
 import (
 	"log"
 	"math"
-	"runtime"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -20,11 +18,6 @@ func TestMaster_Submit(t *testing.T) {
 		wg.Done()
 	})
 
-	go func() {
-		for range time.Tick(time.Millisecond * 250) {
-			log.Printf("(worker, wip, wiq) (%d,%d,%d) - GO: %d\n", atomic.LoadInt32(&balancer.workerCount), atomic.LoadInt32(&balancer.wip), atomic.LoadInt32(&balancer.wiq), runtime.NumGoroutine())
-		}
-	}()
 	for i := 0; i < 10000; i++ {
 		balancer.Submit(i)
 		if i%100 == 0 {

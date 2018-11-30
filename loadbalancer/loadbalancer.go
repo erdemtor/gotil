@@ -1,19 +1,35 @@
 package loadbalancer
 
 import (
+	"fmt"
 	"gotil/loadbalancer/message"
+	"gotil/loadbalancer/messenger"
 	"gotil/loadbalancer/worker"
+	"log"
 	"math"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
+var lastID int32
+
+func generateID() string {
+	return fmt.Sprintf("master[%d]", atomic.AddInt32(&lastID, 1))
+}
+
+type Executor interface {
+	Submit(unit interface{})
+}
+
 type master struct {
+	id          string
 	mu          sync.Mutex
 	f           func(interface{})
 	incoming    chan message.Message
 	outgoing    chan message.Message
+	sender      messenger.Sender
 	wip         int32
 	wiq         int32
 	workerCount int32
@@ -21,12 +37,11 @@ type master struct {
 
 func (m *master) Submit(unit interface{}) {
 	atomic.AddInt32(&m.wiq, 1)
-	m.outgoing <- message.OfType(message.NewTask).WithData(unit)
+	m.sender.Send(message.OfType(message.NewTask).WithPayload(unit))
 }
 
 func (m *master) start() {
 	for msg := range m.incoming {
-
 		switch msg.Type {
 		case message.WorkerStarted:
 			atomic.AddInt32(&m.workerCount, 1)
@@ -41,28 +56,44 @@ func (m *master) start() {
 	}
 }
 
-func New(f func(interface{})) *master {
+func (m *master) StartWorker(count int) {
+	worker.Start(m.f, m.outgoing, m.incoming, count)
+}
+
+func New(f func(interface{})) Executor {
+	outgoing := make(chan message.Message, math.MaxInt16)
+	incoming := make(chan message.Message, math.MaxInt16)
+	id := generateID()
 	m := &master{
-		f:           f,
-		incoming:    make(chan message.Message, math.MaxInt16),
-		outgoing:    make(chan message.Message, math.MaxInt16),
-		workerCount: 3,
+		id:       id,
+		f:        f,
+		incoming: incoming,
+		outgoing: outgoing,
+		sender:   messenger.NewSender(id, outgoing),
 	}
 	go func() {
 		for range time.Tick(time.Millisecond * 10) {
-			if m.wiq > 100 {
-				worker.Start(m.f, m.outgoing, m.incoming, int(m.wiq/2))
-			} else {
-				if m.workerCount < 3 && m.wiq > 0 {
-					worker.Start(m.f, m.outgoing, m.incoming, int(3-m.workerCount))
-				}
+			if m.wiq == 0 {
+				continue
 			}
-
+			if m.workerCount == 0 {
+				m.StartWorker(int(m.wiq))
+				continue
+			}
+			if m.wiq > m.workerCount {
+				m.StartWorker(int(m.wiq))
+			}
 		}
 
 	}()
 
-	worker.Start(m.f, m.outgoing, m.incoming, 3)
+	go func() {
+		for range time.Tick(time.Second) {
+			log.Printf("(worker, wip, wiq) (%d,%d,%d) - GO: %d\n", atomic.LoadInt32(&m.workerCount), atomic.LoadInt32(&m.wip), atomic.LoadInt32(&m.wiq), runtime.NumGoroutine())
+		}
+	}()
+
+	m.StartWorker(1)
 	go m.start()
 	return m
 }
