@@ -1,36 +1,43 @@
 package messenger
 
 import (
-	"fmt"
 	"gotil/loadbalancer/message"
-	"io"
-	"os"
+	"log"
 )
 
-type Sender interface {
+type Messenger interface {
 	Send(msg message.Message)
-	SetLogger(writer io.Writer)
+	Receive() <-chan message.Message
 }
 
 type messenger struct {
 	id       string
 	outgoing chan<- message.Message
-	log      io.Writer
+	incoming <-chan message.Message
 }
 
-func NewSender(id string, outgoing chan<- message.Message) Sender {
-	return &messenger{
+func New(id string, incoming <-chan message.Message, outgoing chan<- message.Message) Messenger {
+	m := &messenger{
 		id:       id,
 		outgoing: outgoing,
-		log:      os.Stdout,
+		incoming: incoming,
 	}
+	return m
 }
 
 func (m *messenger) Send(msg message.Message) {
 	m.outgoing <- msg
-	fmt.Fprintf(m.log, "%s sent %v", m.id, msg)
+	log.Printf("%s sent %s\n", m.id, msg)
+
 }
 
-func (m *messenger) SetLogger(writer io.Writer) {
-	m.log = writer
+func (m *messenger) Receive() <-chan message.Message {
+	retChan := make(chan message.Message, 1)
+	go func() {
+		msg := <-m.incoming
+		log.Printf("%s received %s \n", m.id, msg)
+		retChan <- msg
+		close(retChan)
+	}()
+	return retChan
 }

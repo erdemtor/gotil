@@ -5,7 +5,6 @@ import (
 	"gotil/loadbalancer/message"
 	"gotil/loadbalancer/messenger"
 	"gotil/loadbalancer/worker"
-	"io/ioutil"
 	"log"
 	"math"
 	"runtime"
@@ -25,12 +24,12 @@ type Executor interface {
 }
 
 type master struct {
-	id          string
-	mu          sync.Mutex
-	f           func(interface{})
-	incoming    chan message.Message
-	outgoing    chan message.Message
-	sender      messenger.Sender
+	id       string
+	mu       sync.Mutex
+	f        func(interface{})
+	incoming chan message.Message
+	outgoing chan message.Message
+	messenger.Messenger
 	wip         int32
 	wiq         int32
 	workerCount int32
@@ -38,11 +37,12 @@ type master struct {
 
 func (m *master) Submit(unit interface{}) {
 	atomic.AddInt32(&m.wiq, 1)
-	m.sender.Send(message.OfType(message.NewTask).WithPayload(unit))
+	m.Send(message.OfType(message.NewTask).WithPayload(unit))
 }
 
 func (m *master) start() {
-	for msg := range m.incoming {
+	for {
+		msg := <-m.Receive()
 		switch msg.Type {
 		case message.WorkerStarted:
 			atomic.AddInt32(&m.workerCount, 1)
@@ -66,13 +66,13 @@ func New(f func(interface{})) Executor {
 	incoming := make(chan message.Message, math.MaxInt16)
 	id := generateID()
 	m := &master{
-		id:       id,
-		f:        f,
-		incoming: incoming,
-		outgoing: outgoing,
-		sender:   messenger.NewSender(id, outgoing),
+		id:        id,
+		f:         f,
+		incoming:  incoming,
+		outgoing:  outgoing,
+		Messenger: messenger.New(id, incoming, outgoing),
 	}
-	m.sender.SetLogger(ioutil.Discard)
+	//m.SetLogger(ioutil.Discard)
 	go func() {
 		for range time.Tick(time.Millisecond * 10) {
 			if m.wiq == 0 {

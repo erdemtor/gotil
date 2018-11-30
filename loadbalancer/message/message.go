@@ -1,16 +1,22 @@
 package message
 
+import "fmt"
+
 type messageType string
 
 const NewTask = messageType("new_task")
 const TaskCompleted = messageType("completed[new_task]")
-const TaskStarted = messageType("started[new_taks]")
+const TaskStarted = messageType("started[new_task]")
 const WorkerDied = messageType("worker died")
 const WorkerStarted = messageType("worker started")
 
 type Message struct {
 	Type    messageType
 	Payload interface{}
+}
+
+func (m Message) String() string {
+	return fmt.Sprintf("{type: %s}", m.Type)
 }
 
 func OfType(msgType messageType) Message {
