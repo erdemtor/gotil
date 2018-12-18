@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"gotil/loadbalancer/message"
 	"gotil/loadbalancer/worker"
-	"log"
 	"math"
-	"runtime"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 var lastID int32
@@ -44,6 +41,7 @@ func (m *master) start() {
 		switch msg.Type {
 		case message.WorkerStarted:
 			atomic.AddInt32(&m.workerCount, 1)
+			continue
 		case message.TaskCompleted:
 			atomic.AddInt32(&m.wip, -1)
 		case message.WorkerDied:
@@ -51,6 +49,9 @@ func (m *master) start() {
 		case message.TaskStarted:
 			atomic.AddInt32(&m.wiq, -1)
 			atomic.AddInt32(&m.wip, 1)
+		}
+		if m.wiq > m.workerCount || m.workerCount == 0 {
+			m.StartWorker(int(m.wiq))
 		}
 	}
 }
@@ -68,20 +69,6 @@ func New(f func(interface{})) Balancer {
 		incoming: incoming,
 		outgoing: outgoing,
 	}
-	go func() {
-		for range time.Tick(time.Millisecond * 10) {
-			if m.wiq > m.workerCount || m.workerCount == 0 {
-				m.StartWorker(int(m.wiq))
-			}
-		}
-	}()
-
-	go func() {
-		for range time.Tick(time.Second) {
-			log.Printf("(worker, wip, wiq) (%d,%d,%d) - GO: %d\n", atomic.LoadInt32(&m.workerCount), atomic.LoadInt32(&m.wip), atomic.LoadInt32(&m.wiq), runtime.NumGoroutine())
-		}
-	}()
-
 	m.StartWorker(1)
 	go m.start()
 	return m

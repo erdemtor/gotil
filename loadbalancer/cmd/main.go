@@ -16,9 +16,17 @@ func main() {
 			time.Sleep(time.Second * 5)
 		}
 	}
+
 	select {}
 
 }
+
+//
+//go func() {
+//	for range time.Tick(time.Second) {
+//		log.Printf("(worker, wip, wiq) (%d,%d,%d) - GO: %d\n", atomic.LoadInt32(&m.workerCount), atomic.LoadInt32(&m.wip), atomic.LoadInt32(&m.wiq), runtime.NumGoroutine())
+//	}
+//}()
 
 // Very slow fib calculator
 func fib(nIn interface{}) {
