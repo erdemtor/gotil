@@ -55,7 +55,7 @@ balancer := loadbalancer.New(func(data interface{}) {
 
 ```go
 for _, task := range workslice {
-  balancer.Submit(i)
+  balancer.Submit(task)
 }
 ```
 
