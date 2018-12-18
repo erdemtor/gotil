@@ -47,15 +47,15 @@ Besides, the idle goroutines will kill themselves to release the resources.
 - Simply initialise a new loadbalancer with a consumer function
 ```go
 balancer := loadbalancer.New(func(data interface{}) {
-   time.Sleep(time.Millisecond * time.Duration(data.(int))
+   // your logic
   }) 
 ```
 
 - Then start submitting work-units to the balancer any time in the future within the lifecycle.
 
 ```go
-for i := 0; i < 10000; i++ {
-  balancer.Submit(i)
+for _, task := range workslice {
+  balancer.Submit(task)
 }
 ```
 
