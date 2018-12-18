@@ -3,7 +3,6 @@ package loadbalancer
 import (
 	"fmt"
 	"gotil/loadbalancer/message"
-	"gotil/loadbalancer/messenger"
 	"gotil/loadbalancer/worker"
 	"log"
 	"math"
@@ -19,17 +18,16 @@ func generateID() string {
 	return fmt.Sprintf("master[%d]", atomic.AddInt32(&lastID, 1))
 }
 
-type Executor interface {
+type Balancer interface {
 	Submit(unit interface{})
 }
 
 type master struct {
-	id       string
-	mu       sync.Mutex
-	f        func(interface{})
-	incoming chan message.Message
-	outgoing chan message.Message
-	messenger.Messenger
+	id          string
+	mu          sync.Mutex
+	f           func(interface{})
+	incoming    chan message.Message
+	outgoing    chan message.Message
 	wip         int32
 	wiq         int32
 	workerCount int32
@@ -37,12 +35,12 @@ type master struct {
 
 func (m *master) Submit(unit interface{}) {
 	atomic.AddInt32(&m.wiq, 1)
-	m.Send(message.OfType(message.NewTask).WithPayload(unit))
+	m.outgoing <- message.OfType(message.NewTask).WithPayload(unit)
 }
 
 func (m *master) start() {
 	for {
-		msg := <-m.Receive()
+		msg := <-m.incoming
 		switch msg.Type {
 		case message.WorkerStarted:
 			atomic.AddInt32(&m.workerCount, 1)
@@ -61,32 +59,21 @@ func (m *master) StartWorker(count int) {
 	worker.Start(m.f, m.outgoing, m.incoming, count)
 }
 
-func New(f func(interface{})) Executor {
+func New(f func(interface{})) Balancer {
 	outgoing := make(chan message.Message, math.MaxInt16)
 	incoming := make(chan message.Message, math.MaxInt16)
-	id := generateID()
 	m := &master{
-		id:        id,
-		f:         f,
-		incoming:  incoming,
-		outgoing:  outgoing,
-		Messenger: messenger.New(id, incoming, outgoing),
+		id:       generateID(),
+		f:        f,
+		incoming: incoming,
+		outgoing: outgoing,
 	}
-	//m.SetLogger(ioutil.Discard)
 	go func() {
 		for range time.Tick(time.Millisecond * 10) {
-			if m.wiq == 0 {
-				continue
-			}
-			if m.workerCount == 0 {
-				m.StartWorker(int(m.wiq))
-				continue
-			}
-			if m.wiq > m.workerCount {
+			if m.wiq > m.workerCount || m.workerCount == 0 {
 				m.StartWorker(int(m.wiq))
 			}
 		}
-
 	}()
 
 	go func() {

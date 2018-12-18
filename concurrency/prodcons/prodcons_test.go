@@ -9,8 +9,14 @@ import (
 	"testing"
 )
 
-func TestManyProducersOneConsumer(t *testing.T) {
+func TestProdCons(t *testing.T) {
 	t.Parallel()
+	t.Run("nothing provided ends", func(t *testing.T) {
+		t.Parallel()
+		err := (&prodcons.Runner{}).Run()
+		assert.NoError(t, err)
+	})
+
 	t.Run("the consumer receives exactly one time", func(t *testing.T) {
 		t.Parallel()
 		var producerCount = 1000

@@ -3,7 +3,6 @@ package worker
 import (
 	"fmt"
 	"gotil/loadbalancer/message"
-	"gotil/loadbalancer/messenger"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,20 +15,23 @@ func generateID() string {
 }
 
 type Worker struct {
-	mu sync.RWMutex
-	messenger.Messenger
-	f func(interface{})
+	id       string
+	mu       sync.RWMutex
+	incoming <-chan message.Message
+	outgoing chan<- message.Message
+	f        func(interface{})
 }
 
 func Start(f func(interface{}), incoming, outgoing chan message.Message, count int) {
 	for i := 0; i < count; i++ {
 		w := &Worker{
-			Messenger: messenger.New(generateID(), incoming, outgoing),
-			f:         f,
+			id:       generateID(),
+			incoming: incoming,
+			outgoing: outgoing,
+			f:        f,
 		}
 		go w.start()
 	}
-
 }
 
 func resetTimer() <-chan time.Time {
@@ -38,20 +40,20 @@ func resetTimer() <-chan time.Time {
 
 func (w *Worker) start() {
 	idleTimer := resetTimer()
-	w.Send(message.OfType(message.WorkerStarted))
+	w.outgoing <- message.OfType(message.WorkerStarted)
 	for {
 		select {
 		case <-idleTimer:
-			w.Send(message.OfType(message.WorkerDied))
+			w.outgoing <- message.OfType(message.WorkerDied)
 			return
-
-		case msg := <-w.Receive():
+		case msg := <-w.incoming:
 			if msg.Type == message.NewTask {
-				w.Send(message.OfType(message.TaskStarted))
+				w.outgoing <- message.OfType(message.TaskStarted)
 				w.f(msg.Payload)
-				w.Send(message.OfType(message.TaskCompleted))
+				w.outgoing <- message.OfType(message.TaskCompleted)
+				idleTimer = resetTimer()
 			}
-			idleTimer = resetTimer()
+
 		}
 	}
 }
