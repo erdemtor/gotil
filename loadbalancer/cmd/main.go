@@ -2,21 +2,17 @@ package main
 
 import (
 	"gotil/loadbalancer"
+	"log"
+	"math/rand"
 	"time"
 )
 
 func main() {
+	rand.Seed(time.Now().Unix())
 	pool := loadbalancer.New(consumer)
-
-	//go func() {
-	//	for range time.Tick(time.Second) {
-	//		log.Printf("go-routine count: %d", runtime.NumGoroutine())
-	//	}
-	//}()
-
-	for i := 0; i < 15; i++ {
+	for i := 0; i < 150; i++ {
 		pool.Submit(i)
-		time.Sleep(time.Second)
+		log.Println(i)
 	}
 
 	select {}
@@ -24,7 +20,7 @@ func main() {
 }
 
 // Very slow consumer calculator
-func consumer(nIn interface{}) {
-	n := nIn.(int)
-	time.Sleep(time.Second * time.Duration(n))
+func consumer(_ interface{}) {
+
+	time.Sleep(time.Second * time.Duration(rand.Intn(10)))
 }
