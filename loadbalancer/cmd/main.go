@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	pool := loadbalancer.New(fib)
+	pool := loadbalancer.New(consumer)
 
 	for i := 0; i < 15; i++ {
 		pool.Submit(i)
@@ -28,8 +28,8 @@ func main() {
 //	}
 //}()
 
-// Very slow fib calculator
-func fib(nIn interface{}) {
+// Very slow consumer calculator
+func consumer(nIn interface{}) {
 	n := nIn.(int)
 	time.Sleep(time.Second * time.Duration(n))
 }
