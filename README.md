@@ -47,7 +47,7 @@ Besides, the idle goroutines will kill themselves to release the resources.
 - Simply initialise a new loadbalancer with a consumer function
 ```go
 balancer := loadbalancer.New(func(data interface{}) {
-   time.Sleep(time.Millisecond * time.Duration(float64(data.(int))
+   time.Sleep(time.Millisecond * time.Duration(data.(int))
   }) 
 ```
 
@@ -58,5 +58,7 @@ for i := 0; i < 10000; i++ {
   balancer.Submit(i)
 }
 ```
+
+ Check out [https://github.com/erdemtoraman/gotil/blob/master/loadbalancer/cmd/main.go](https://github.com/erdemtoraman/gotil/blob/master/loadbalancer/cmd/main.go)
 
 
