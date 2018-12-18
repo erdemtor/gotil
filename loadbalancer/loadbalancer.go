@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"gotil/loadbalancer/message"
 	"gotil/loadbalancer/worker"
+	"log"
 	"math"
+	"runtime"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 var lastID int32
@@ -25,8 +28,8 @@ type master struct {
 	f           func(interface{})
 	incoming    chan message.Message
 	outgoing    chan message.Message
-	wip         int32
-	wiq         int32
+	wip         int32 // work in process
+	wiq         int32 // work in queue
 	workerCount int32
 }
 
@@ -50,8 +53,8 @@ func (m *master) start() {
 			atomic.AddInt32(&m.wiq, -1)
 			atomic.AddInt32(&m.wip, 1)
 		}
-		if m.wiq > m.workerCount || m.workerCount == 0 {
-			m.StartWorker(int(m.wiq))
+		if m.wiq >= m.workerCount || m.workerCount == 0 {
+			m.StartWorker(1)
 		}
 	}
 }
@@ -71,5 +74,12 @@ func New(f func(interface{})) Balancer {
 	}
 	m.StartWorker(1)
 	go m.start()
+	go func() {
+		go func() {
+			for range time.Tick(time.Second) {
+				log.Printf("(Worker Count, WIP, WIQ) (%d, %d, %d) go: %d", m.workerCount, m.wip, m.wiq, runtime.NumGoroutine())
+			}
+		}()
+	}()
 	return m
 }
