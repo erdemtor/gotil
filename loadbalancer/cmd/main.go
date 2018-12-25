@@ -21,6 +21,5 @@ func main() {
 
 // Very slow consumer calculator
 func consumer(_ interface{}) {
-
 	time.Sleep(time.Second * time.Duration(rand.Intn(10)))
 }

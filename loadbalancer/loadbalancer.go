@@ -33,6 +33,7 @@ type master struct {
 	workerCount int32
 }
 
+//Submit allows the client to add more tasks into the queue of tasks and can influence the number of goroutines running
 func (m *master) Submit(unit interface{}) {
 	atomic.AddInt32(&m.wiq, 1)
 	m.outgoing <- message.OfType(message.NewTask).WithPayload(unit)
@@ -54,15 +55,17 @@ func (m *master) start() {
 			atomic.AddInt32(&m.wip, 1)
 		}
 		if m.wiq >= m.workerCount || m.workerCount == 0 {
-			m.StartWorker(1)
+			m.startWorker() // add more workers if the queue length is more than worker count
 		}
 	}
 }
 
-func (m *master) StartWorker(count int) {
-	worker.Start(m.f, m.outgoing, m.incoming, count)
+func (m *master) startWorker() {
+	w := worker.New(m.f, m.outgoing, m.incoming)
+	w.Start()
 }
 
+//New creates an initialises a new balancer, ready to submit work units to be run
 func New(f func(interface{})) Balancer {
 	outgoing := make(chan message.Message, math.MaxInt16)
 	incoming := make(chan message.Message, math.MaxInt16)
@@ -72,14 +75,12 @@ func New(f func(interface{})) Balancer {
 		incoming: incoming,
 		outgoing: outgoing,
 	}
-	m.StartWorker(1)
+	m.startWorker() // to have one worker at least waiting for tasks
 	go m.start()
-	go func() {
-		go func() {
-			for range time.Tick(time.Second) {
-				log.Printf("(Worker Count, WIP, WIQ) (%d, %d, %d) go: %d", m.workerCount, m.wip, m.wiq, runtime.NumGoroutine())
-			}
-		}()
+	go func() { // logging purposes
+		for range time.Tick(time.Second) {
+			log.Printf("(Worker Count, WIP, WIQ) (%d, %d, %d) go: %d", m.workerCount, m.wip, m.wiq, runtime.NumGoroutine())
+		}
 	}()
 	return m
 }
